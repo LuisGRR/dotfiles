@@ -1,0 +1,445 @@
+import os
+import re
+import psutil
+import socket
+import subprocess
+
+from libqtile import qtile
+from libqtile.config import Click, Drag, Group, KeyChord, Key, Match, Screen
+from libqtile.command import lazy
+from libqtile import layout, bar, widget, hook,extension
+from libqtile.lazy import lazy
+
+from typing import List  # noqa: F401
+
+
+mod = "mod4"
+terminal = "alacritty"
+
+#PALERA DE COLORES 1
+colorAzul = "#053B52"
+colorNaranja1 = "#EF4C1E"
+colorAmarrillo = "#F9BD2D"
+
+#PALETA DE COLORES 2
+colorMarrillo2 = "#FDEB6C"
+colorNaranja2 = "#D94C2A"
+colorNegro1 = "#262223"
+
+#colores default
+colorBlanco = "#ffffff"
+colorNegro = "#000000"
+
+keys = [
+    # Switch between windows in current stack pane
+    Key([mod], "k", lazy.layout.down()), 
+    Key([mod], "j", lazy.layout.up()),
+    Key([mod], "h", lazy.layout.left()),
+    Key([mod], "l", lazy.layout.right()),
+    
+     # Change window sizes (MonadTall)
+    Key([mod, "shift"], "l", lazy.layout.grow()),
+    Key([mod, "shift"], "h", lazy.layout.shrink()),
+    
+    Key([mod], "f", lazy.window.toggle_floating()),
+    
+    # Move windows up or down in current stack
+    Key([mod, "control"], "k", lazy.layout.shuffle_down()),
+    Key([mod, "control"], "j", lazy.layout.shuffle_up()),
+
+    # Switch window focus to other pane(s) of stack
+    Key([mod], "space", lazy.layout.next()),
+    Key([mod, "shift"], "space",lazy.layout.toggle_split()),
+    
+    Key([mod, "shift"], "q", lazy.window.kill()),
+
+
+    Key([mod], "Return", lazy.spawn(terminal)),
+
+    # Toggle between different layouts as defined below
+    Key([mod], "Tab", lazy.next_layout()),
+    
+
+
+    Key([mod, "control"], "r", lazy.restart(), desc="Restart qtile"),
+    Key([mod, "control"], "q", lazy.shutdown(), desc="Shutdown qtile"),
+    
+    #controles de teclas especiales
+    
+    Key([], "Print", lazy.spawn("gnome-screenshot -i")),
+    Key([mod], "Print", lazy.spawn("gnome-screenshot -p")),
+    
+    #Key([mod], "subir voluen", lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%")),
+    #Key([mod], "Next", lazy.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%")),
+    
+    #progrmas 
+    Key([mod], "u", lazy.spawn(browser)),
+
+    
+    Key([mod], "r", lazy.run_extension(extension.DmenuRun(
+        dmenu_prompt="Ejecuta",
+        dmenu_font="Ubuntu-10",
+        background=back,
+        foreground=color_light,
+        selected_background=colorNegro,
+        selected_foregorund=colorAzul,
+        ))),
+]
+
+#groups_names =[("TER", {'layout': 'monadtall'}),
+#    ("WWW", {'layout': 'monadtall'}),
+#    ("DEV", {'layout': 'monadtall'}),
+#    ("DOC", {'layout': 'monadtall'}),
+#    ("MUS", {'layout': 'monadtall'}),
+#    ("GFX", {'layout': 'floating'})]
+
+#groups = [Group(name, **kwargs) for name,kwargs in groups_names]
+
+#for i , (name,kwargs) in enumerate(groups_names, 1):
+#    keys.append(Key([mod], str(i), lazy.group[name].toscreen()))
+#    keys.append(Key([mod,"shift"], str(i), lazy.window.togroup(name)))
+# Grupo de ventanas 
+__groups = {
+    1:Group("TER"),
+    2:Group("WWW", matches=[Match(wn_class=["brave"])]),
+    3:Group("DEV"),
+    4:Group("DB"),
+    5:Group("MUS"),
+    0:Group("IDE")
+}
+
+groups = [__groups[i] for i in __groups]
+
+def get_group_key(name):
+    return[k for k,g in __groups.items() if g.name == name][0]
+
+for i in groups:
+    keys.extend([
+        Key([mod], str(get_group_key(i.name)), lazy.group[i.name].toscreen()),
+    ]),
+
+    Key([mod,"shift"], str(get_group_key(i.name)), lazy.window.togroup(i.name, switch_group = True)),
+
+
+    layout_theme = {
+        "border_width": 2,
+        "margin": 8,
+        "border_focus": "#elacff",
+        "border_normal":"#1D2330" 
+    }
+
+layouts = [
+    # layout.Max(**layout_theme),
+    # layout.Stack(num_stacks=2),
+    layout.MonadTall(**layout_theme),
+    
+    #layout.RatioTile(**layout_theme),
+    #layout.TreeTab(
+     #   font = "Ubuntu",
+      #   fontsize = 10,
+       #  sections = ["FIRST", "SECOND", "THIRD", "FOURTH"],
+       #  section_fontsize = 10,
+#         border_width = 2,
+ #        bg_color = "1c1f24",
+  #       active_bg = "c678dd",
+   #      active_fg = "000000",
+    #     inactive_bg = "a9a1e1",
+     #    inactive_fg = "1c1f24",
+      #   padding_left = 0,
+#         padding_x = 0,
+ #        padding_y = 5,
+  #       section_top = 10,
+   #      section_bottom = 20,
+    #     level_shift = 8,
+     #    vspace = 3,
+      #   panel_width = 200
+    #),
+    #layout.Floating(**layout_theme)
+]
+
+#prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
+
+
+
+
+widget_defaults = dict(
+    font='Ubuntu Mono',
+    fontsize=12,
+    padding=2,
+    background=colorAzul
+)
+extension_defaults = widget_defaults.copy()
+
+screens = [
+    Screen(
+        top=bar.Bar(
+            [
+                widget.Sep(
+                       linewidth = 0,
+                       padding = 6,
+                       foreground = colorAmarrillo,
+                       background = colorAmarillo
+                       ),
+                widget.TextBox(
+                       fontsize=12,
+                       text="",
+                       padding=3,
+                       mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn(terminal)}
+                       ),
+                widget.Sep(
+                       linewidth = 0,
+                       padding = 6,
+                       foreground = colorAmarrillo,
+                       background = colorAmarrillo
+                       ),
+                widget.GroupBox(
+                       font = "Ubuntu Bold",
+                       fontsize = 9,
+                       margin_y = 3,
+                       margin_x = 0,
+                       padding_y = 5,
+                       padding_x = 3,
+                       borderwidth = 3,
+                       active = colorNaranja1,
+                       inactive = colorAmarrillo,
+                       rounded = False,
+                       highlight_color = colorAzul,
+                       highlight_method = "line",
+                       this_current_screen_border = colorNaranja1,
+                       this_screen_border = colors colorNaranja1,
+                       other_current_screen_border = colorAzul,
+                       other_screen_border = colorAzul,
+                       foreground = colorAzul,
+                       background = colorAzul
+                       ),
+               # widget.Prompt(
+                #       prompt = prompt,
+                 
+                #font = "Ubuntu Mono",
+                 #      padding = 10,
+                  
+                #foreground = colorNaranja1,
+                 #      background = colorAzul
+                 #      ),
+                widget.Sep(
+                       linewidth = 0,
+                       padding = 40,
+                       foreground = colorNaranja1,
+                       background = colorAzul
+                       ),
+               widget.WindowName(
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0
+                       ),
+               widget.Systray(
+                       background = colorAzul,
+                       padding = 5
+                       ),
+               widget.Sep(
+                       linewidth = 0,
+                       padding = 6,
+                       foreground = colorNaranja1,
+                       background = colorAzul
+                       ),
+              widget.TextBox(
+                       text = '',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+             widget.TextBox(
+                       text = "",
+                       padding = 2,
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       fontsize = 14
+                       ),
+             widget.Net(
+                       interface = "wlp1s0",
+                       format = '{down} ↓↑ {up}',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 5
+                       ),
+             widget.TextBox(
+                       text = '',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+             widget.TextBox(
+                       text = " ⟳",
+                       padding = 2,
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       fontsize = 14
+                       ),
+              widget.CheckUpdates(
+                       update_interval = 1800,
+                       distro = "Ubuntu",
+                       display_format = "{updates} Updates",
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn(terminal + ' sudo apt update')},
+                       ),
+              widget.TextBox(
+                       text = '',
+                      foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+              widget.TextBox(
+                       text = " 🖬",
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 14
+                       ),
+              widget.Memory(
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn(terminal + ' top')},
+                       padding = 5
+                       ),
+              widget.TextBox(
+                       text='',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+              widget.TextBox(
+                      text = " Vol:",
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0
+                       ),
+              widget.Volume(
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       volume_app="pavucontrol",
+                       padding = 5
+                       ),
+              widget.TextBox(
+                       text = '',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+              widget.CurrentLayoutIcon(
+                       custom_icon_paths = [os.path.expanduser("~/.config/qtile/icons")],
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       scale = 0.7
+                       ),
+              widget.CurrentLayout(
+                      foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 5
+                       ),
+              widget.TextBox(
+                       text = '',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+                        widget.TextBox(
+                       text = " ",
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 14
+                       ),
+              widget.Clock(
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       format = "%A, %B %d - %H:%M "
+                       ),
+              widget.TextBox(
+                       text = '',
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 37
+                       ),
+                        widget.TextBox(
+                       text = "  ",
+                       foreground = colorNaranja1,
+                       background = colorAzul,
+                       padding = 0,
+                       fontsize = 14
+                       ),
+              widget.QuickExit(
+                    default_text="Salir",
+                    foreground = colorNaranja1,
+                    background = colorAzul,
+                    countdown_format="[ {} ]"
+                ),
+
+
+            ],
+            34,
+            background="#222222",
+            opacity=1
+        ),
+    ),
+]
+
+# Drag floating layouts.
+mouse = [
+    Drag([mod], "Button1", lazy.window.set_position_floating(),
+         start=lazy.window.get_position()),
+    Drag([mod], "Button3", lazy.window.set_size_floating(),
+         start=lazy.window.get_size()),
+    Click([mod], "Button2", lazy.window.bring_to_front())
+]
+
+dgroups_key_binder = None
+dgroups_app_rules = []  # type: List
+main = None  # WARNING: this is deprecated and will be removed soon
+follow_mouse_focus = True
+bring_front_click = False
+cursor_warp = False
+floating_layout = layout.Floating(float_rules=[
+    # Run the utility of `xprop` to see the wm class and name of an X client.
+    {'wmclass': 'confirm'},
+    {'wmclass': 'dialog'},
+    {'wmclass': 'download'},
+    {'wmclass': 'error'},
+    {'wmclass': 'file_progress'},
+    {'wmclass': 'notification'},
+    {'wmclass': 'splash'},
+    {'wmclass': 'toolbar'},
+    {'wmclass': 'confirmreset'},  # gitk
+    {'wmclass': 'makebranch'},  # gitk
+    {'wmclass': 'maketag'},  # gitk
+    {'wname': 'branchdialog'},  # gitk
+    {'wname': 'pinentry'},  # GPG key password entry
+    {'wmclass': 'ssh-askpass'},  # ssh-askpass
+])
+auto_fullscreen = True
+focus_on_window_activation = "smart"
+
+
+@hook.subscribe.startup_once
+def start_once():
+    home = os.path.expanduser('~')
+    subprocess.call([home + '/.config/qtile/autostart.sh'])
+
+
+# XXX: Gasp! We're lying here. In fact, nobody really uses or cares about this
+# string besides java UI toolkits; you can see several discussions on the
+# mailing lists, GitHub issues, and other WM documentation that suggest setting
+# this string if your java app doesn't work correctly. We may as well just lie
+# and say that we're a working one by default.
+#
+# We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
+# java that happens to be on java's whitelist.
+wmname = "LG3D"
