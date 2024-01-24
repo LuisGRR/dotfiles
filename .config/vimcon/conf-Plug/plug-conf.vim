@@ -2,7 +2,7 @@ call plug#begin('~/.vim/plugged')
 
 " themes 
 Plug 'morhetz/gruvbox'
-Plug 'kaicataldo/material.vim'
+Plug 'kaicataldo/material.vim',{'branch':'main'}
 Plug 'joshdick/onedark.vim'
 Plug 'danilo-augusto/vim-afterglow'
 " IDE
@@ -34,6 +34,11 @@ Plug 'alvan/vim-closetag'
 Plug 'junegunn/fzf' ,{'do': {-> fzf#install()}}
 Plug 'junegunn/fzf.vim'
 Plug 'airblade/vim-rooter'
+
+Plug 'ironcamel/vim-script-runner',{'for':['sh','python']}
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
+Plug 'vim-syntastic/syntastic'
 
 "Plug 'francoiscabrol/ranger.vim'
 
